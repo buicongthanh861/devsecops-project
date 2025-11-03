@@ -22,7 +22,7 @@ pipeline {
                 -Dsonar.projectKey=buicongthanh861_devsecops-project \
                 -Dsonar.organization=java-woof \
                 -Dsonar.host.url=https://sonarcloud.io \
-                -Dsonar.login=$SONAR_TOKEN"
+            "
         }
     }
 }
