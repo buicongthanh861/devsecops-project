@@ -1,22 +1,25 @@
 pipeline {
-   agent any
-   tools {
-      maven 'Maven_3_8_4'
-   }
-   stages {
-      stage('Compile and Run Sonar Analysis') {
-         environment {
-            SONAR_TOKEN = credentials('SONAR_TOKEN') 
-         }
-         steps {
-            sh '''
-               mvn clean verify sonar:sonar \
-                 -Dsonar.projectKey=buicongthanh861_devsecops-project \
-                 -Dsonar.organization=java-woof \
-                 -Dsonar.host.url=https://sonarcloud.io \
-                 -Dsonar.token=$SONAR_TOKEN
-            '''
-         }
-      }
-   }
+    agent any
+    tools {
+        maven 'Maven_3_8_4'
+        sonarScanner 'sonar-scanner'
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'mvn clean verify'
+            }
+        }
+
+        stage('SonarQube analysis') {
+            environment {
+                scannerHome = tool 'sonar-scanner'
+            }
+            steps {
+                withSonarQubeEnv('sonarqube-server') {
+                    sh "${scannerHome}/bin/sonar-scanner"
+                }
+            }
+        }
+    }
 }
