@@ -17,20 +17,20 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                // Sử dụng SonarQube server đã cấu hình trong Jenkins
-                withSonarQubeEnv('sonarqube-server') {
-                    // Chạy SonarScanner
-                    sh """
-                        sonar-scanner \
-                          -Dsonar.projectKey=buicongthanh861_devsecops-project \
-                          -Dsonar.organization=java-woof \
-                          -Dsonar.host.url=https://sonarcloud.io \
-                          -Dsonar.login=$SONAR_TOKEN
-                    """
-                }
-            }
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    steps {
+        withSonarQubeEnv('sonarqube-server') {
+            sh "${SCANNER_HOME}/bin/sonar-scanner \
+                -Dsonar.projectKey=buicongthanh861_devsecops-project \
+                -Dsonar.organization=java-woof \
+                -Dsonar.host.url=https://sonarcloud.io \
+                -Dsonar.login=$SONAR_TOKEN"
         }
+    }
+}
+
     }
 
     post {
