@@ -1,40 +1,13 @@
 pipeline {
-    agent any
-
-    tools {
-        maven 'Maven_3_8_4'
+  agent any
+  tools { 
+        maven 'Maven_3_5_2'  
     }
-
-    stages {
-        stage('Build') {
-            steps {
-                sh 'mvn clean package'
-            }
-        }
-
-        stage('SonarQube Analysis') {
-    environment {
-        scannerHome = tool 'sonar-scanner'
-    }
-    steps {
-        withSonarQubeEnv('sonarqube-server') {
-            sh "${scannerHome}/bin/sonar-scanner \
-                -Dsonar.projectKey=buicongthanh861_devsecops-project \
-                -Dsonar.organization=java-woof \
-                -Dsonar.host.url=https://sonarcloud.io \
-            "
-        }
-    }
-}
-
-    }
-
-    post {
-        success {
-            echo 'Build và SonarCloud scan thành công 🎉'
-        }
-        failure {
-            echo 'Có lỗi xảy ra '
-        }
-    }
+   stages{
+    stage('CompileandRunSonarAnalysis') {
+            steps {	
+		sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=buicongthanh861_devsecops-project -Dsonar.organization=java-woof -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=8f1120bb65d5c3cdeee946d0fe1100215eff7468'
+			}
+        } 
+  }
 }
