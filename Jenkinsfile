@@ -1,13 +1,13 @@
 pipeline {
-  agent any
-  tools { 
-        maven 'Maven_3_5_2'  
-    }
+   agent any
+   tools {
+      maven 'Maven_3_8_4'
+   }
    stages{
-    stage('CompileandRunSonarAnalysis') {
-            steps {	
-		sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=asgbuggywebapp -Dsonar.organization=asgbuggywebapp -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=9325586a8f1d1adf470b908a46156f5844'
-			}
-        } 
-  }
+      stage('ComplileadRunSonarAnaysis') {
+            steps {
+                  sh 'mvn clean verify sonar:sonar -Dsonar.projectKey=buicongthanh861_devsecops-project -Dsonar.organization=java-woof -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=$SONAR_TOKEN'
+            }
+      }
+   }     
 }
