@@ -2,11 +2,7 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven_3_8_4' // Tên Maven đã cấu hình trong Jenkins
-    }
-
-    environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN')
+        maven 'Maven_3_8_4'
     }
 
     stages {
@@ -18,11 +14,11 @@ pipeline {
 
         stage('SonarQube Analysis') {
     environment {
-        SCANNER_HOME = tool 'sonar-scanner'
+        scannerHome = tool 'sonar-scanner'
     }
     steps {
         withSonarQubeEnv('sonarqube-server') {
-            sh "${SCANNER_HOME}/bin/sonar-scanner \
+            sh "${scannerHome}/bin/sonar-scanner \
                 -Dsonar.projectKey=buicongthanh861_devsecops-project \
                 -Dsonar.organization=java-woof \
                 -Dsonar.host.url=https://sonarcloud.io \
