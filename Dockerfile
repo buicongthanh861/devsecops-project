@@ -1,20 +1,8 @@
-# --- Stage 1: Build ứng dụng ---
-FROM maven:3.8-jdk-8 AS builder
-WORKDIR /usr/src/easybuggy
-COPY . .
+FROM maven:3.8-jdk-8 as builder
+COPY . /usr/src/easybuggy/
+WORKDIR /usr/src/easybuggy/
 RUN mvn -B package
 
-# --- Stage 2: Chạy ứng dụng với Tomcat ---
-FROM tomcat:8.5-jdk8-corretto
-
-# Xóa webapps mặc định để tránh lỗi
-RUN rm -rf /usr/local/tomcat/webapps/*
-
-# Copy WAR file đã build từ stage trước
-COPY --from=builder /usr/src/easybuggy/target/ROOT.war /usr/local/tomcat/webapps/ROOT.war
-
-# Mở port mặc định của Tomcat
-EXPOSE 8080
-
-# Lệnh khởi động Tomcat
-CMD ["catalina.sh", "run"]
+FROM openjdk:8-slim
+COPY --from=builder /usr/src/easybuggy/target/easybuggy.jar /
+CMD ["java", "-XX:MaxMetaspaceSize=128m", "-Xloggc:logs/gc_%p_%t.log", "-Xmx256m", "-XX:MaxDirectMemorySize=90m", "-XX:+UseSerialGC", "-XX:+PrintHeapAtGC", "-XX:+PrintGCDetails", "-XX:+PrintGCDateStamps", "-XX:+UseGCLogFileRotation", "-XX:NumberOfGCLogFiles=5", "-XX:GCLogFileSize=10M", "-XX:GCTimeLimit=15", "-XX:GCHeapFreeLimit=50", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=logs/", "-XX:ErrorFile=logs/hs_err_pid%p.log", "-agentlib:jdwp=transport=dt_socket,server=y,address=9009,suspend=n", "-Dderby.stream.error.file=logs/derby.log", "-Dderby.infolog.append=true", "-Dderby.language.logStatementText=true", "-Dderby.locks.deadlockTrace=true", "-Dderby.locks.monitor=true", "-Dderby.storage.rowLocking=true", "-Dcom.sun.management.jmxremote", "-Dcom.sun.management.jmxremote.port=7900", "-Dcom.sun.management.jmxremote.ssl=false", "-Dcom.sun.management.jmxremote.authenticate=false", "-ea", "-jar", "easybuggy.jar"]
