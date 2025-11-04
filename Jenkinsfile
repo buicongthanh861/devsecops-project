@@ -29,7 +29,7 @@ pipeline {
       stage('Push') {
             steps {
                   script{
-                        docker.withRegistry('AWS ECR URL','ecr:ap-southest-1:aws-credentials') {
+                        docker.withRegistry('https://770424767729.dkr.ecr.ap-southeast-1.amazonaws.com','ecr:ap-southest-1:aws-credentials') {
                               app.push("latest")
                         }
                   }
