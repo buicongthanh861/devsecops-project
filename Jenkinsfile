@@ -49,14 +49,22 @@ pipeline {
         }
       }
     }
+    stage('Kubernets Deployment of ASG buggy web Application') {
+      steps {
+        withKubeConfig([credentialsId: 'kubelogin']) {
+          sh('kubectl delete all -all -n devsecops')
+          sh('kubectl apply -f deployment.yaml --namespace-devsecops')
+        }
+      }
+    }
   }
 
   post {
     success {
-      echo "✅ Build & Push to ECR thành công!"
+      echo " Build & Push to ECR thành công!"
     }
     failure {
-      echo "❌ Pipeline thất bại, kiểm tra lại log."
+      echo " Pipeline thất bại, kiểm tra lại log."
     }
   }
 }

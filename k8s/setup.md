@@ -1,0 +1,2 @@
+eksctl create cluster --name kubernets-cluster --version 1.29 --region ap-southeast-1 --nodegroup-name linux-nodes --node-type c7i-flex.large --nodes 2
+cat /root/.kube/config
