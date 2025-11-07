@@ -14,7 +14,7 @@ pipeline {
         -Dsonar.projectKey=buicongthanh861_devsecops-project \
         -Dsonar.organization=java-woof \
         -Dsonar.host.url=https://sonarcloud.io \
-        -Dsonar.token=$SONAR_TOKEN
+        -Dsonar.token=8f1120bb65d5c3cdeee946d0fe1100215eff7468
         '''
       }
     }
