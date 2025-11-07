@@ -49,7 +49,8 @@ pipeline {
         }
       }
     }
-    stage('Kubernets Deployment of ASG buggy web Application') {
+
+    stage('Kubernetes Deployment of ASG buggy web Application') {
       steps {
         withKubeConfig([credentialsId: 'kubelogin']) {
           sh('kubectl delete all --all -n devsecops')
@@ -57,13 +58,14 @@ pipeline {
         }
       }
     }
-  }
-    stage('wait_for_testing'){
+
+    stage('Wait for Testing') {
       steps {
-        sh 'pwd';sleep 180;echo "Application Has been deployed on k8s"
+        sh 'pwd'; sleep 180; echo "Application has been deployed on k8s"
       }
     }
-    stage('RunDASTUsingZAP') {
+
+    stage('Run DAST Using ZAP') {
       steps {
         withKubeConfig([credentialsId: 'kubelogin']) {
           sh('zap.sh -cmd -quickurl http://$(kubectl get services/asgbuggy --namespace=devsecops -o json| jq -r ".status.loadBalancer.ingress[] | .hostname") -quickprogress -quickout ${WORKSPACE}/zap_report.html')
@@ -71,16 +73,16 @@ pipeline {
         }
       }
     }
+  }
 
   post {
     success {
-      echo " Build & Push to ECR thành công!"
+      echo "✅ Build & Push to ECR thành công!"
     }
     failure {
-      echo " Pipeline thất bại, kiểm tra lại log."
+      echo "❌ Pipeline thất bại, kiểm tra lại log."
     }
   }
 }
-
 
 
