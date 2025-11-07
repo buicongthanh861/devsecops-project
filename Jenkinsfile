@@ -68,7 +68,7 @@ pipeline {
     stage('Run DAST Using ZAP') {
       steps {
         withKubeConfig([credentialsId: 'kubelogin']) {
-          sh('zap.sh -cmd -quickurl http://$(kubectl get services/asgbuggy --namespace=devsecops -o json| jq -r ".status.loadBalancer.ingress[] | .hostname") -quickprogress -quickout ${WORKSPACE}/zap_report.html')
+          sh('zap.sh -cmd -quickurl http://$(kubectl get services/asg-service --namespace=devsecops -o json| jq -r ".status.loadBalancer.ingress[] | .hostname") -quickprogress -quickout ${WORKSPACE}/zap_report.html')
           archiveArtifacts artifacts: 'zap_report.html'
         }
       }
