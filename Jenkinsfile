@@ -14,7 +14,7 @@ pipeline {
         -Dsonar.projectKey=buicongthanh861_devsecops-project \
         -Dsonar.organization=java-woof \
         -Dsonar.host.url=https://sonarcloud.io \
-        -Dsonar.token=8f1120bb65d5c3cdeee946d0fe1100215eff7468
+        -Dsonar.token=$SONAR_TOKEN
         '''
       }
     }
@@ -53,7 +53,7 @@ pipeline {
     stage('Kubernetes Deployment of ASG buggy web Application') {
       steps {
         withKubeConfig([credentialsId: 'kubelogin']) {
-          sh('kubectl delete all --all -n devsecops || true')
+          sh('kubectl delete all --all -n devsecops')
           sh('kubectl apply -f deployment.yaml --namespace devsecops')
         }
       }
@@ -61,32 +61,14 @@ pipeline {
 
     stage('Wait for Testing') {
       steps {
-        sh '''
-        pwd
-        sleep 180
-        echo " Application has been deployed on Kubernetes"
-        '''
+        sh 'pwd'; sleep 180; echo "Application has been deployed on k8s"
       }
     }
 
     stage('Run DAST Using ZAP') {
       steps {
-        script {
-          // Lấy hostname của service trên Kubernetes
-          def targetUrl = sh(
-            script: "kubectl get svc asg-service -n devsecops -o json | jq -r '.status.loadBalancer.ingress[] | .hostname'",
-            returnStdout: true
-          ).trim()
-
-          echo " Running OWASP ZAP DAST scan on: http://${targetUrl}"
-
-          // Chạy ZAP scan bằng Docker image chính thức
-          sh """
-          docker run --rm -v ${WORKSPACE}:/zap/wrk owasp/zap2docker-stable \
-            zap-baseline.py -t http://${targetUrl} -r zap_report.html
-          """
-
-          // Lưu báo cáo kết quả vào Jenkins artifact
+        withKubeConfig([credentialsId: 'kubelogin']) {
+          sh('zap.sh -cmd -quickurl http://$(kubectl get services/asg-service --namespace=devsecops -o json| jq -r ".status.loadBalancer.ingress[] | .hostname") -quickprogress -quickout ${WORKSPACE}/zap_report.html')
           archiveArtifacts artifacts: 'zap_report.html'
         }
       }
@@ -95,10 +77,12 @@ pipeline {
 
   post {
     success {
-      echo " Build, Deploy & DAST Scan completed successfully!"
+      echo "✅ Build & Push to ECR thành công!"
     }
     failure {
-      echo " Pipeline thất bại, kiểm tra lại log."
+      echo "❌ Pipeline thất bại, kiểm tra lại log."
     }
   }
 }
+
+
