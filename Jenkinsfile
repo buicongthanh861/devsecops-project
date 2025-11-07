@@ -53,7 +53,7 @@ pipeline {
     stage('Kubernetes Deployment of ASG buggy web Application') {
       steps {
         withKubeConfig([credentialsId: 'kubelogin']) {
-          sh('kubectl delete all --all -n devsecops')
+          sh('kubectl delete all --all -n devsecops || true')
           sh('kubectl apply -f deployment.yaml --namespace devsecops')
         }
       }
@@ -61,14 +61,32 @@ pipeline {
 
     stage('Wait for Testing') {
       steps {
-        sh 'pwd'; sleep 180; echo "Application has been deployed on k8s"
+        sh 'pwd'
+        sleep 180
+        echo "Application has been deployed on k8s"
       }
     }
 
     stage('Run DAST Using ZAP') {
       steps {
-        withKubeConfig([credentialsId: 'kubelogin']) {
-          sh('zap.sh -cmd -quickurl http://$(kubectl get services/asg-service --namespace=devsecops -o json| jq -r ".status.loadBalancer.ingress[] | .hostname") -quickprogress -quickout ${WORKSPACE}/zap_report.html')
+        script {
+          withKubeConfig([credentialsId: 'kubelogin']) {
+            // Lấy hostname từ service k8s
+            def target = sh(
+              script: "kubectl get svc asg-service -n devsecops -o json | jq -r '.status.loadBalancer.ingress[0].hostname'",
+              returnStdout: true
+            ).trim()
+
+            // Chạy OWASP ZAP scan bằng Docker image chính thức
+            sh """
+            docker run --rm -v ${WORKSPACE}:/zap/wrk/:rw \
+              ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+              -t http://${target} \
+              -r zap_report.html
+            """
+          }
+
+          // Lưu report vào Jenkins artifact
           archiveArtifacts artifacts: 'zap_report.html'
         }
       }
@@ -77,12 +95,10 @@ pipeline {
 
   post {
     success {
-      echo "✅ Build & Push to ECR thành công!"
+      echo "✅ Build, Push & Security Scans hoàn tất thành công!"
     }
     failure {
-      echo "❌ Pipeline thất bại, kiểm tra lại log."
+      echo "❌ Pipeline thất bại, vui lòng kiểm tra lại log chi tiết!"
     }
   }
 }
-
-
