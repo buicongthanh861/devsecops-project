@@ -6,7 +6,8 @@ pipeline {
   }
 
   environment {
-    ZAP_HOME = "/mnt/jenkins/.ZAP"
+    // Đường dẫn tới ZAP
+    ZAP_HOME = "/mnt/jenkins/ZAP_2.15.0"
     PATH = "${env.ZAP_HOME}:${env.PATH}"
   }
 
@@ -32,7 +33,7 @@ pipeline {
       }
     }
 
-    stage('Build') {
+    stage('Build Docker Image') {
       steps {
         script {
           withDockerRegistry([credentialsId: "dockerlogin", url: ""]) {
@@ -42,7 +43,7 @@ pipeline {
       }
     }
 
-    stage('Push') {
+    stage('Push Docker Image') {
       steps {
         script {
           docker.withRegistry(
@@ -55,7 +56,7 @@ pipeline {
       }
     }
 
-    stage('Kubernetes Deployment of ASG buggy web Application') {
+    stage('Kubernetes Deployment') {
       steps {
         withKubeConfig([credentialsId: 'kubelogin']) {
           sh('kubectl delete all --all -n devsecops || true')
@@ -64,7 +65,7 @@ pipeline {
       }
     }
 
-    stage('Wait for Testing') {
+    stage('Wait for Service Ready') {
       steps {
         echo "Waiting for service to be ready..."
         sleep 180
@@ -83,6 +84,11 @@ pipeline {
 
             if (!serviceIP) {
               error "Service asgbuggy chưa có hostname. Vui lòng kiểm tra!"
+            }
+
+            // Kiểm tra tồn tại ZAP_HOME
+            if (!fileExists("${ZAP_HOME}/zap.sh")) {
+              error "Không tìm thấy zap.sh tại ${ZAP_HOME}. Kiểm tra cài đặt ZAP!"
             }
 
             // Chạy ZAP scan
