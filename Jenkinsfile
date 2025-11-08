@@ -27,24 +27,17 @@ pipeline {
       }
     }
 
-    stage('Build') {
+    stage('Build & Push Docker Image') {
       steps {
         script {
           withDockerRegistry([credentialsId: "dockerlogin", url: ""]) {
             app = docker.build("asg")
-          }
-        }
-      }
-    }
-
-    stage('Push') {
-      steps {
-        script {
-          docker.withRegistry(
-            'https://770424767729.dkr.ecr.ap-southeast-1.amazonaws.com',
-            'ecr:ap-southeast-1:aws-credentials'
-          ) {
-            app.push("latest")
+            docker.withRegistry(
+              'https://770424767729.dkr.ecr.ap-southeast-1.amazonaws.com',
+              'ecr:ap-southeast-1:aws-credentials'
+            ) {
+              app.push("latest")
+            }
           }
         }
       }
@@ -61,32 +54,25 @@ pipeline {
 
     stage('Wait for Testing') {
       steps {
-        sh 'pwd'
         sleep 180
         echo "Application has been deployed on k8s"
       }
     }
 
-    stage('Run DAST Using ZAP') {
+    stage('Run DAST Using ZAP Standalone') {
       steps {
         script {
           withKubeConfig([credentialsId: 'kubelogin']) {
-            // Lấy hostname từ service k8s
             def target = sh(
               script: "kubectl get svc asg-service -n devsecops -o json | jq -r '.status.loadBalancer.ingress[0].hostname'",
               returnStdout: true
             ).trim()
 
-            // Chạy OWASP ZAP scan bằng Docker image chính thức
             sh """
-            docker run --rm -v ${WORKSPACE}:/zap/wrk/:rw \
-              ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-              -t http://${target} \
-              -r zap_report.html
+            /opt/zaproxy/zap.sh -cmd -quickurl http://${target} -quickout ${WORKSPACE}/zap_report.html
             """
           }
 
-          // Lưu report vào Jenkins artifact
           archiveArtifacts artifacts: 'zap_report.html'
         }
       }
@@ -95,10 +81,10 @@ pipeline {
 
   post {
     success {
-      echo "✅ Build, Push & Security Scans hoàn tất thành công!"
+      echo "Build, Push & Security Scans hoàn tất thành công!"
     }
     failure {
-      echo "❌ Pipeline thất bại, vui lòng kiểm tra lại log chi tiết!"
+      echo "Pipeline thất bại, vui lòng kiểm tra lại log chi tiết!"
     }
   }
 }
