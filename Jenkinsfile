@@ -5,6 +5,11 @@ pipeline {
     maven 'Maven_3_8_4'
   }
 
+  environment {
+    ZAP_HOME = "/mnt/jenkins/.ZAP"
+    PATH = "${env.ZAP_HOME}:${env.PATH}"
+  }
+
   stages {
 
     stage('Compile and Run Sonar Analysis') {
@@ -61,9 +66,8 @@ pipeline {
 
     stage('Wait for Testing') {
       steps {
-        sh 'pwd'
+        echo "Waiting for service to be ready..."
         sleep 180
-        echo "Application has been deployed on k8s"
       }
     }
 
@@ -71,8 +75,23 @@ pipeline {
       steps {
         script {
           withKubeConfig([credentialsId: 'kubelogin']) {
-            sh('zap.sh -cmd -quickurl http://$(kubectl get services/asgbuggy --namespace=devsecops -o json| jq -r ".status.loadBalancer.ingress[] | .hostname") -quickprogress -quickout ${WORKSPACE}/zap_report.html')
+            // Lấy hostname/IP service
+            def serviceIP = sh(
+              script: 'kubectl get svc asgbuggy -n devsecops -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"',
+              returnStdout: true
+            ).trim()
+
+            if (!serviceIP) {
+              error "Service asgbuggy chưa có hostname. Vui lòng kiểm tra!"
+            }
+
+            // Chạy ZAP scan
+            sh """
+              ${ZAP_HOME}/zap.sh -cmd -quickurl http://${serviceIP} \
+              -quickprogress -quickout ${WORKSPACE}/zap_report.html
+            """
           }
+
           // Lưu report vào Jenkins artifact
           archiveArtifacts artifacts: 'zap_report.html'
         }
@@ -89,4 +108,3 @@ pipeline {
     }
   }
 }
-
