@@ -1,35 +1,44 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: asg-deployment
-  namespace: devsecops
+  name: asgbuggy-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: asg
+      app: asgbuggy
   template:
     metadata:
       labels:
-        app: asg
+        app: asgbuggy
     spec:
       containers:
-        - name: asg
-          image: 770424767729.dkr.ecr.ap-southeast-1.amazonaws.com/asg:latest
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 8080
+      - name: asgbuggy
+        image: 770424767729.dkr.ecr.ap-southeast-1.amazonaws.com/asg:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+# service type loadbalancer       
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: asg-service
-  namespace: devsecops
+  labels:
+    app: asgbuggy
+    k8s-app: asgbuggy
+  name: asgbuggy
 spec:
-  selector:
-    app: asg
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8080
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
   type: LoadBalancer
+  selector:
+    app: asgbuggy
+
+
+
+
+
+

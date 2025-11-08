@@ -27,17 +27,24 @@ pipeline {
       }
     }
 
-    stage('Build & Push Docker Image') {
+    stage('Build') {
       steps {
         script {
           withDockerRegistry([credentialsId: "dockerlogin", url: ""]) {
             app = docker.build("asg")
-            docker.withRegistry(
-              'https://770424767729.dkr.ecr.ap-southeast-1.amazonaws.com',
-              'ecr:ap-southeast-1:aws-credentials'
-            ) {
-              app.push("latest")
-            }
+          }
+        }
+      }
+    }
+
+    stage('Push') {
+      steps {
+        script {
+          docker.withRegistry(
+            'https://770424767729.dkr.ecr.ap-southeast-1.amazonaws.com',
+            'ecr:ap-southeast-1:aws-credentials'
+          ) {
+            app.push("latest")
           }
         }
       }
@@ -54,25 +61,19 @@ pipeline {
 
     stage('Wait for Testing') {
       steps {
+        sh 'pwd'
         sleep 180
         echo "Application has been deployed on k8s"
       }
     }
 
-    stage('Run DAST Using ZAP Standalone') {
+    stage('Run DAST Using ZAP') {
       steps {
         script {
           withKubeConfig([credentialsId: 'kubelogin']) {
-            def target = sh(
-              script: "kubectl get svc asg-service -n devsecops -o json | jq -r '.status.loadBalancer.ingress[0].hostname'",
-              returnStdout: true
-            ).trim()
-
-            sh """
-            /opt/zaproxy/zap.sh -cmd -quickurl http://${target} -quickout ${WORKSPACE}/zap_report.html
-            """
+            sh('zap.sh -cmd -quickurl http://$(kubectl get services/asgbuggy --namespace=devsecops -o json| jq -r ".status.loadBalancer.ingress[] | .hostname") -quickprogress -quickout ${WORKSPACE}/zap_report.html')
           }
-
+          // Lưu report vào Jenkins artifact
           archiveArtifacts artifacts: 'zap_report.html'
         }
       }
@@ -88,3 +89,4 @@ pipeline {
     }
   }
 }
+
